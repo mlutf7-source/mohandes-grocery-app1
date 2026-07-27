@@ -1,7 +1,7 @@
 node_modules/
 dist/
 .capacitor/
-android/
+
 ios/
 *.local
 .env
