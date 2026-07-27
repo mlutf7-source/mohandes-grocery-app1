@@ -7,7 +7,7 @@ import {
     ArrowUpCircle, ArrowDownCircle, Users, Factory, Wallet, Receipt,
       HelpCircle, Settings, Trash2, BookOpen, Store
       } from 'lucide-react';
-
+      
       const items = [
         // الأساسية - الأكثر استخداماً
           { title: 'بيع منتج', icon: ShoppingCart, path: '/sales', color: 'text-success', bg: 'bg-success/10', desc: 'إنشاء فاتورة بيع نقدي أو آجل. ابحث عن المنتج وأضفه للفاتورة. يمكنك تعديل أو حذف الفواتير السابقة.' },
