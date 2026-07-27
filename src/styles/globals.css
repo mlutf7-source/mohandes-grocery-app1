@@ -1,0 +1,164 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+      margin: 0;
+          padding: 0;
+              box-sizing: border-box;
+                }
+
+                  html {
+                      direction: rtl;
+                          -webkit-tap-highlight-color: transparent;
+                            }
+
+                              body {
+                                  font-family: 'Cairo', sans-serif;
+                                      background-color: #F4F7F5;
+                                          color: #1F2937;
+                                              min-height: 100vh;
+                                                  overflow-x: hidden;
+                                                      -webkit-font-smoothing: antialiased;
+                                                          -moz-osx-font-smoothing: grayscale;
+                                                            }
+
+                                                              /* الوضع الليلي */
+                                                                .dark body,
+                                                                  .dark {
+                                                                      background-color: #111827;
+                                                                          color: #f3f4f6;
+                                                                            }
+
+                                                                              .dark .bg-background {
+                                                                                  background-color: #1f2937;
+                                                                                    }
+
+                                                                                      .dark .bg-surface {
+                                                                                          background-color: #1f2937;
+                                                                                            }
+
+                                                                                              .dark .text-text-primary {
+                                                                                                  color: #f3f4f6;
+                                                                                                    }
+
+                                                                                                      .dark .text-text-secondary {
+                                                                                                          color: #9ca3af;
+                                                                                                            }
+
+                                                                                                              .dark .border-border {
+                                                                                                                  border-color: #374151;
+                                                                                                                    }
+
+                                                                                                                      .dark .card {
+                                                                                                                          background-color: #1f2937;
+                                                                                                                              color: #f3f4f6;
+                                                                                                                                }
+
+                                                                                                                                  .dark .input-field {
+                                                                                                                                      background-color: #374151;
+                                                                                                                                          border-color: #4b5563;
+                                                                                                                                              color: #f3f4f6;
+                                                                                                                                                }
+
+                                                                                                                                                  .dark .input-field:focus {
+                                                                                                                                                      border-color: #22c55e;
+                                                                                                                                                          ring-color: #22c55e;
+                                                                                                                                                            }
+
+                                                                                                                                                              .dark select {
+                                                                                                                                                                  background-color: #374151;
+                                                                                                                                                                      color: #f3f4f6;
+                                                                                                                                                                        }
+
+                                                                                                                                                                          .dark .bg-white {
+                                                                                                                                                                              background-color: #1f2937 !important;
+                                                                                                                                                                                }
+
+                                                                                                                                                                                  .dark .bg-gray-50 {
+                                                                                                                                                                                      background-color: #374151 !important;
+                                                                                                                                                                                        }
+
+                                                                                                                                                                                          .dark .text-black {
+                                                                                                                                                                                              color: #f3f4f6 !important;
+                                                                                                                                                                                                }
+
+                                                                                                                                                                                                  input[type="number"] {
+                                                                                                                                                                                                      -moz-appearance: textfield;
+                                                                                                                                                                                                        }
+
+                                                                                                                                                                                                          input[type="number"]::-webkit-outer-spin-button,
+                                                                                                                                                                                                            input[type="number"]::-webkit-inner-spin-button {
+                                                                                                                                                                                                                -webkit-appearance: none;
+                                                                                                                                                                                                                    margin: 0;
+                                                                                                                                                                                                                      }
+
+                                                                                                                                                                                                                        ::selection {
+                                                                                                                                                                                                                            background-color: #DCFCE7;
+                                                                                                                                                                                                                                color: #15803D;
+                                                                                                                                                                                                                                  }
+
+                                                                                                                                                                                                                                    .dark ::selection {
+                                                                                                                                                                                                                                        background-color: #166534;
+                                                                                                                                                                                                                                            color: #dcfce7;
+                                                                                                                                                                                                                                              }
+                                                                                                                                                                                                                                              }
+
+                                                                                                                                                                                                                                              @layer components {
+                                                                                                                                                                                                                                                .card {
+                                                                                                                                                                                                                                                    @apply bg-surface rounded-card p-4 shadow-card;
+                                                                                                                                                                                                                                                      }
+
+                                                                                                                                                                                                                                                        .dark .card {
+                                                                                                                                                                                                                                                            background-color: #1f2937;
+                                                                                                                                                                                                                                                              }
+
+                                                                                                                                                                                                                                                                .card-accent {
+                                                                                                                                                                                                                                                                    @apply card border-r-[3px] border-r-primary;
+                                                                                                                                                                                                                                                                      }
+
+                                                                                                                                                                                                                                                                        .btn-primary {
+                                                                                                                                                                                                                                                                            @apply bg-primary text-white rounded-btn h-[48px] px-6 font-semibold text-body
+                                                                                                                                                                                                                                                                                       active:bg-primary-dark transition-colors duration-150
+                                                                                                                                                                                                                                                                                                  disabled:bg-gray-300 disabled:text-gray-500;
+                                                                                                                                                                                                                                                                                                    }
+
+                                                                                                                                                                                                                                                                                                      .btn-secondary {
+                                                                                                                                                                                                                                                                                                          @apply bg-primary-light text-primary rounded-btn h-[48px] px-6 font-semibold text-body
+                                                                                                                                                                                                                                                                                                                     active:bg-primary/20 transition-colors duration-150;
+                                                                                                                                                                                                                                                                                                                       }
+
+                                                                                                                                                                                                                                                                                                                         .btn-danger {
+                                                                                                                                                                                                                                                                                                                             @apply bg-danger text-white rounded-btn h-[48px] px-6 font-semibold text-body
+                                                                                                                                                                                                                                                                                                                                        active:bg-red-700 transition-colors duration-150;
+                                                                                                                                                                                                                                                                                                                                          }
+
+                                                                                                                                                                                                                                                                                                                                            .input-field {
+                                                                                                                                                                                                                                                                                                                                                @apply w-full h-[48px] rounded-input border border-border px-4 text-body
+                                                                                                                                                                                                                                                                                                                                                           bg-surface outline-none transition-all duration-150
+                                                                                                                                                                                                                                                                                                                                                                      focus:border-primary focus:ring-1 focus:ring-primary;
+                                                                                                                                                                                                                                                                                                                                                                        }
+
+                                                                                                                                                                                                                                                                                                                                                                          .dark .input-field {
+                                                                                                                                                                                                                                                                                                                                                                              background-color: #374151;
+                                                                                                                                                                                                                                                                                                                                                                                  border-color: #4b5563;
+                                                                                                                                                                                                                                                                                                                                                                                      color: #f3f4f6;
+                                                                                                                                                                                                                                                                                                                                                                                        }
+
+                                                                                                                                                                                                                                                                                                                                                                                          .search-input {
+                                                                                                                                                                                                                                                                                                                                                                                              @apply input-field pr-10;
+                                                                                                                                                                                                                                                                                                                                                                                                }
+
+                                                                                                                                                                                                                                                                                                                                                                                                  .page-container {
+                                                                                                                                                                                                                                                                                                                                                                                                      @apply px-4 pt-4 pb-24;
+                                                                                                                                                                                                                                                                                                                                                                                                        }
+
+                                                                                                                                                                                                                                                                                                                                                                                                          .page-title {
+                                                                                                                                                                                                                                                                                                                                                                                                              @apply text-page-title text-text-primary mb-4;
+                                                                                                                                                                                                                                                                                                                                                                                                                }
+
+                                                                                                                                                                                                                                                                                                                                                                                                                  .dark .page-title {
+                                                                                                                                                                                                                                                                                                                                                                                                                      color: #f3f4f6;
+                                                                                                                                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                                                                                                                                        }
