@@ -20,11 +20,18 @@ import Payment from '@/pages/Payment';
 import StoreInfo from '@/pages/StoreInfo';
 import LockScreen from '@/pages/LockScreen';
 import Notifications from '@/pages/Notifications';
+import ActivationPage from '@/pages/ActivationPage';
+import AdminPage from '@/pages/admin/AdminPage';
 import { checkAllNotifications } from '@/utils/checkNotifications';
 import { autoBackup } from '@/utils/backup';
+import { isTrialExpired, isActivated } from '@/utils/activation';
+
+const APP_MODE = import.meta.env.VITE_APP_MODE || 'user';
 
 function App() {
   const [unlocked, setUnlocked] = useState(!localStorage.getItem('app-passcode'));
+  const [activated, setActivated] = useState(APP_MODE === 'admin');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const passcode = localStorage.getItem('app-passcode');
@@ -32,7 +39,22 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!unlocked) return;
+    async function check() {
+      if (APP_MODE === 'admin') {
+        setActivated(true);
+        setLoading(false);
+        return;
+      }
+      const expired = await isTrialExpired();
+      const act = await isActivated();
+      setActivated(!expired || act);
+      setLoading(false);
+    }
+    check();
+  }, []);
+
+  useEffect(() => {
+    if (!unlocked || !activated) return;
     
     checkAllNotifications();
     autoBackup();
@@ -43,10 +65,16 @@ function App() {
     }, 60 * 60 * 1000);
 
     return () => clearInterval(interval);
-  }, [unlocked]);
+  }, [unlocked, activated]);
+
+  if (loading) return null;
 
   if (!unlocked) {
     return <LockScreen onUnlock={() => setUnlocked(true)} />;
+  }
+
+  if (!activated) {
+    return <ActivationPage onActivated={() => setActivated(true)} />;
   }
 
   return (
@@ -71,6 +99,9 @@ function App() {
           <Route path="store-info" element={<StoreInfo />} />
           <Route path="settings" element={<Settings />} />
           <Route path="notifications" element={<Notifications />} />
+          {APP_MODE === 'admin' && (
+            <Route path="admin" element={<AdminPage />} />
+          )}
         </Route>
       </Routes>
     </BrowserRouter>
