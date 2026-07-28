@@ -1,114 +1,142 @@
+import { Capacitor } from '@capacitor/core';
+import { Share } from '@capacitor/share';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+
 const safeFileName = (name: string) => name.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_');
+
+const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      resolve(result.split(',')[1] || '');
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
 
 export async function sharePdfFromElement(elementId = 'print-report', title = 'كشف حساب') {
   const element = document.getElementById(elementId);
-    if (!element) { alert('منطقة التقرير غير موجودة'); return; }
-    
-      const { default: html2pdf } = await import('html2pdf.js');
-        let wrapper: HTMLDivElement | null = null;
-        
-          try {
-              const clone = element.cloneNode(true) as HTMLElement;
-                  clone.querySelectorAll('.no-print, button').forEach((el) => el.remove());
-                      clone.style.width = '100%';
-                          clone.style.maxWidth = '80mm';
-                              clone.style.minHeight = 'auto';
-                                  clone.style.background = '#ffffff';
-                                      clone.style.color = '#111111';
-                                          clone.style.padding = '4px';
-                                              clone.style.margin = '0';
-                                                  clone.style.direction = 'rtl';
-                                                      clone.style.boxSizing = 'border-box';
-                                                          clone.style.fontFamily = 'Cairo,Tahoma,Arial,sans-serif';
-                                                              clone.style.overflow = 'hidden';
-                                                                  clone.style.wordBreak = 'break-word';
-                                                                  
-                                                                      // ============ منع انقسام البطاقات فقط ============
-                                                                          clone.querySelectorAll<HTMLElement>('.card, .app-card, .sale-card').forEach((el) => {
-                                                                                el.style.boxShadow = 'none';
-                                                                                      el.style.background = '#ffffff';
-                                                                                            el.style.boxSizing = 'border-box';
-                                                                                                  el.style.padding = '3px 5px';
-                                                                                                        el.style.marginBottom = '3px';
-                                                                                                              el.style.fontSize = '9px';
-                                                                                                                    el.style.width = '100%';
-                                                                                                                          el.style.maxWidth = '100%';
-                                                                                                                                el.style.overflow = 'hidden';
-                                                                                                                                      el.style.breakInside = 'avoid';
-                                                                                                                                            el.style.pageBreakInside = 'avoid';
-                                                                                                                                                });
-                                                                                                                                                    // =================================================
-                                                                                                                                                    
-                                                                                                                                                        clone.querySelectorAll<HTMLElement>('table').forEach((el) => {
-                                                                                                                                                              el.style.width = '100%';
-                                                                                                                                                                    el.style.maxWidth = '100%';
-                                                                                                                                                                          el.style.minWidth = '0';
-                                                                                                                                                                                el.style.borderCollapse = 'collapse';
-                                                                                                                                                                                      el.style.tableLayout = 'auto';
-                                                                                                                                                                                            el.style.fontSize = '8px';
-                                                                                                                                                                                                  el.style.overflow = 'hidden';
-                                                                                                                                                                                                      });
-                                                                                                                                                                                                      
-                                                                                                                                                                                                          clone.querySelectorAll<HTMLElement>('th, td').forEach((el) => {
-                                                                                                                                                                                                                el.style.fontSize = '7px';
-                                                                                                                                                                                                                      el.style.padding = '2px 2px';
-                                                                                                                                                                                                                            el.style.wordBreak = 'break-word';
-                                                                                                                                                                                                                                  el.style.overflowWrap = 'break-word';
-                                                                                                                                                                                                                                        el.style.verticalAlign = 'middle';
-                                                                                                                                                                                                                                              el.style.boxSizing = 'border-box';
-                                                                                                                                                                                                                                                    el.style.maxWidth = '100%';
-                                                                                                                                                                                                                                                        });
-                                                                                                                                                                                                                                                        
-                                                                                                                                                                                                                                                            clone.querySelectorAll<HTMLElement>('h1, h2, h3, h4').forEach((el) => {
-                                                                                                                                                                                                                                                                  el.style.fontSize = '10px';
-                                                                                                                                                                                                                                                                        el.style.margin = '3px 0';
-                                                                                                                                                                                                                                                                            });
-                                                                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                                                                clone.querySelectorAll<HTMLElement>('p, span, div').forEach((el) => {
-                                                                                                                                                                                                                                                                                      el.style.fontSize = '8px';
-                                                                                                                                                                                                                                                                                          });
-                                                                                                                                                                                                                                                                                          
-                                                                                                                                                                                                                                                                                              wrapper = document.createElement('div');
-                                                                                                                                                                                                                                                                                                  wrapper.style.position = 'fixed';
-                                                                                                                                                                                                                                                                                                      wrapper.style.left = '-99999px';
-                                                                                                                                                                                                                                                                                                          wrapper.style.top = '0';
-                                                                                                                                                                                                                                                                                                              wrapper.style.width = '85mm';
-                                                                                                                                                                                                                                                                                                                  wrapper.style.background = '#ffffff';
-                                                                                                                                                                                                                                                                                                                      wrapper.style.zIndex = '-1';
-                                                                                                                                                                                                                                                                                                                          wrapper.style.padding = '0';
-                                                                                                                                                                                                                                                                                                                              wrapper.style.margin = '0';
-                                                                                                                                                                                                                                                                                                                                  wrapper.appendChild(clone);
-                                                                                                                                                                                                                                                                                                                                      document.body.appendChild(wrapper);
-                                                                                                                                                                                                                                                                                                                                      
-                                                                                                                                                                                                                                                                                                                                          const blob: Blob = await html2pdf().set({
-                                                                                                                                                                                                                                                                                                                                                margin: [0, 0, 0, 0],
-                                                                                                                                                                                                                                                                                                                                                      filename: `${safeFileName(title)}.pdf`,
-                                                                                                                                                                                                                                                                                                                                                            image: { type: 'jpeg', quality: 1 },
-                                                                                                                                                                                                                                                                                                                                                                  html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 300, scrollX: 0, scrollY: 0, logging: false },
-                                                                                                                                                                                                                                                                                                                                                                        jsPDF: { unit: 'mm', format: [80, 297], orientation: 'portrait' },
-                                                                                                                                                                                                                                                                                                                                                                              pagebreak: { mode: ['css', 'legacy'] },
-                                                                                                                                                                                                                                                                                                                                                                                  }).from(clone).outputPdf('blob');
-                                                                                                                                                                                                                                                                                                                                                                                  
-                                                                                                                                                                                                                                                                                                                                                                                      const fileName = `${safeFileName(title)}.pdf`;
-                                                                                                                                                                                                                                                                                                                                                                                      
-                                                                                                                                                                                                                                                                                                                                                                                          if (navigator.share && navigator.canShare) {
-                                                                                                                                                                                                                                                                                                                                                                                                const file = new File([blob], fileName, { type: 'application/pdf' });
-                                                                                                                                                                                                                                                                                                                                                                                                      if (navigator.canShare({ files: [file] })) {
-                                                                                                                                                                                                                                                                                                                                                                                                              await navigator.share({ title, text: title, files: [file] });
-                                                                                                                                                                                                                                                                                                                                                                                                                      return;
-                                                                                                                                                                                                                                                                                                                                                                                                                            }
-                                                                                                                                                                                                                                                                                                                                                                                                                                }
-                                                                                                                                                                                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                                                                                                                                                                                                                    const url = URL.createObjectURL(blob);
-                                                                                                                                                                                                                                                                                                                                                                                                                                        const a = document.createElement('a');
-                                                                                                                                                                                                                                                                                                                                                                                                                                            a.href = url;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                a.download = fileName;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                    a.click();
-                                                                                                                                                                                                                                                                                                                                                                                                                                                        URL.revokeObjectURL(url);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                          } catch (error) {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                              console.error(error);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                  alert('تعذرت مشاركة ملف PDF');
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                    } finally {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                        if (wrapper) document.body.removeChild(wrapper);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                          }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                          }
+  if (!element) { alert('منطقة التقرير غير موجودة'); return; }
+
+  const { default: html2pdf } = await import('html2pdf.js');
+  let wrapper: HTMLDivElement | null = null;
+
+  try {
+    const clone = element.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll('.no-print, button').forEach((el) => el.remove());
+    clone.style.width = '720px';
+    clone.style.maxWidth = '720px';
+    clone.style.minHeight = 'auto';
+    clone.style.background = '#ffffff';
+    clone.style.color = '#111111';
+    clone.style.padding = '12px';
+    clone.style.margin = '0 auto';
+    clone.style.direction = 'rtl';
+    clone.style.boxSizing = 'border-box';
+    clone.style.fontFamily = 'Cairo,Tahoma,Arial,sans-serif';
+
+    clone.querySelectorAll<HTMLElement>('.card, .app-card').forEach((el) => {
+      el.style.boxShadow = 'none';
+      el.style.background = '#ffffff';
+      el.style.boxSizing = 'border-box';
+    });
+
+    clone.querySelectorAll<HTMLElement>('.table-wrap').forEach((el) => {
+      el.style.overflow = 'visible';
+      el.style.width = '100%';
+      el.style.maxWidth = '100%';
+    });
+
+    clone.querySelectorAll<HTMLElement>('table').forEach((el) => {
+      el.style.width = '100%';
+      el.style.maxWidth = '100%';
+      el.style.minWidth = '0';
+      el.style.tableLayout = 'fixed';
+      el.style.borderCollapse = 'collapse';
+      el.style.pageBreakInside = 'auto';
+    });
+
+    clone.querySelectorAll<HTMLElement>('th, td').forEach((el) => {
+      el.style.fontSize = '10px';
+      el.style.padding = '6px 3px';
+      el.style.wordBreak = 'break-word';
+      el.style.overflowWrap = 'anywhere';
+      el.style.boxSizing = 'border-box';
+    });
+
+    clone.querySelectorAll<HTMLElement>('tr, .card, .app-card').forEach((el) => {
+      el.style.pageBreakInside = 'avoid';
+      el.style.breakInside = 'avoid';
+    });
+
+    wrapper = document.createElement('div');
+    wrapper.style.position = 'fixed';
+    wrapper.style.left = '-99999px';
+    wrapper.style.top = '0';
+    wrapper.style.width = '720px';
+    wrapper.style.background = '#ffffff';
+    wrapper.style.zIndex = '-1';
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+
+    const blob: Blob = await html2pdf().set({
+      margin: [5, 5, 5, 5],
+      filename: `${safeFileName(title)}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 740, scrollX: 0, scrollY: 0 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'], avoid: ['tr', 'table', '.card', '.app-card', '.section-row'] },
+    }).from(clone).outputPdf('blob');
+
+    const fileName = `${safeFileName(title)}.pdf`;
+
+    // ========== مشاركة أصلية عبر Capacitor (للتطبيق المثبت) ==========
+    if (Capacitor.isNativePlatform()) {
+      const base64 = await blobToBase64(blob);
+
+      const saved = await Filesystem.writeFile({
+        path: fileName,
+        data: base64,
+        directory: Directory.Cache,
+      });
+
+      await Share.share({
+        title,
+        text: title,
+        url: saved.uri,
+      });
+
+      return;
+    }
+    // ================================================================
+
+    // الكود القديم (للمتصفح)
+    if (navigator.share && navigator.canShare) {
+      const file = new File([blob], fileName, { type: 'application/pdf' });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({ title, text: title, files: [file] });
+        return;
+      }
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error(error);
+    alert('تعذرت مشاركة ملف PDF');
+  } finally {
+    if (wrapper) document.body.removeChild(wrapper);
+  }
+}
+
+export function printElement(elementId: string) {
+  const element = document.getElementById(elementId);
+  if (!element) { alert('منطقة التقرير غير موجودة'); return; }
+  window.print();
+        }
