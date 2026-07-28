@@ -22,16 +22,20 @@ jobs:
       - name: Build React app
         run: npm run build
 
-      # الخطوة المُصححة: تغيير معرف التطبيق
-      - name: Set User App ID
+      # خطوة إصلاح appId
+      - name: Ensure Capacitor App ID
         run: |
-          # التحقق من وجود الملف وتعديله
-          if [ -f "capacitor.config.json" ]; then
-            sed -i 's/"appId": "[^"]*"/"appId": "${{ secrets.USER_APP_ID }}"/' capacitor.config.json
-          elif [ -f "capacitor.config.ts" ]; then
-            sed -i "s/appId: '[^']*'/appId: '${{ secrets.USER_APP_ID }}'/" capacitor.config.ts
+          APP_ID="${{ secrets.USER_APP_ID }}"
+          if [ -z "$APP_ID" ]; then
+            echo "Error: USER_APP_ID secret is not set."
+            exit 1
+          fi
+          # إنشاء ملف capacitor.config.json إذا لم يكن موجوداً
+          if [ ! -f capacitor.config.json ]; then
+            echo "{\"appId\": \"$APP_ID\"}" > capacitor.config.json
           else
-            echo "Warning: capacitor.config file not found!"
+            # استبدال appId الموجود
+            sed -i "s/\"appId\": \"[^\"]*\"/\"appId\": \"$APP_ID\"/" capacitor.config.json
           fi
 
       - name: Add Android platform
