@@ -30,83 +30,83 @@ const APP_MODE = import.meta.env.VITE_APP_MODE || 'user';
 
 function App() {
   const [unlocked, setUnlocked] = useState(!localStorage.getItem('app-passcode'));
-  const [activated, setActivated] = useState(APP_MODE === 'admin');
-  const [loading, setLoading] = useState(true);
+    const [activated, setActivated] = useState(APP_MODE === 'admin');
+      const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const passcode = localStorage.getItem('app-passcode');
-    if (!passcode) setUnlocked(true);
-  }, []);
+        useEffect(() => {
+            const passcode = localStorage.getItem('app-passcode');
+                if (!passcode) setUnlocked(true);
+                  }, []);
 
-  useEffect(() => {
-    async function check() {
-      if (APP_MODE === 'admin') {
-        setActivated(true);
-        setLoading(false);
-        return;
-      }
-      const expired = await isTrialExpired();
-      const act = await isActivated();
-      setActivated(!expired || act);
-      setLoading(false);
-    }
-    check();
-  }, []);
+                    useEffect(() => {
+                        async function check() {
+                              if (APP_MODE === 'admin') {
+                                      setActivated(true);
+                                              setLoading(false);
+                                                      return;
+                                                            }
+                                                                  const expired = await isTrialExpired();
+                                                                        const act = await isActivated();
+                                                                              setActivated(!expired || act);
+                                                                                    setLoading(false);
+                                                                                        }
+                                                                                            check();
+                                                                                              }, []);
 
-  useEffect(() => {
-    if (!unlocked || !activated) return;
+                                                                                                useEffect(() => {
+                                                                                                    if (!unlocked || !activated) return;
 
-    checkAllNotifications();
-    autoBackup();
+                                                                                                        checkAllNotifications();
+                                                                                                            autoBackup();
 
-    const interval = setInterval(() => {
-      checkAllNotifications();
-      autoBackup();
-    }, 60 * 60 * 1000);
+                                                                                                                const interval = setInterval(() => {
+                                                                                                                      checkAllNotifications();
+                                                                                                                            autoBackup();
+                                                                                                                                }, 60 * 60 * 1000);
 
-    return () => clearInterval(interval);
-  }, [unlocked, activated]);
+                                                                                                                                    return () => clearInterval(interval);
+                                                                                                                                      }, [unlocked, activated]);
 
-  if (loading) return null;
+                                                                                                                                        if (loading) return null;
 
-  if (!unlocked) {
-    return <LockScreen onUnlock={() => setUnlocked(true)} />;
-  }
+                                                                                                                                          if (!unlocked) {
+                                                                                                                                              return <LockScreen onUnlock={() => setUnlocked(true)} />;
+                                                                                                                                                }
 
-  if (!activated) {
-    return <ActivationPage onActivated={() => setActivated(true)} />;
-  }
+                                                                                                                                                  if (!activated) {
+                                                                                                                                                      return <ActivationPage onActivated={() => setActivated(true)} />;
+                                                                                                                                                        }
 
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Home />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="products" element={<Products />} />
-          <Route path="sales" element={<Sales />} />
-          <Route path="purchases" element={<Purchases />} />
-          <Route path="inventory" element={<Inventory />} />
-          <Route path="customers" element={<Customers />} />
-          <Route path="suppliers" element={<Suppliers />} />
-          <Route path="cashboxes" element={<CashBoxes />} />
-          <Route path="expenses" element={<Expenses />} />
-          <Route path="reports" element={<ReportsPage />} />
-          <Route path="receipt" element={<Receipt />} />
-          <Route path="payment" element={<Payment />} />
-          <Route path="trash" element={<Trash />} />
-          <Route path="guide" element={<Guide />} />
-          <Route path="store-info" element={<StoreInfo />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="notifications" element={<Notifications />} />
-          {/* صفحة المسؤول تظهر فقط عند بناء نسخة المسؤول */}
-          {APP_MODE === 'admin' && (
-            <Route path="admin" element={<AdminPage />} />
-          )}
-        </Route>
-      </Routes>
-    </BrowserRouter>
-  );
-}
+                                                                                                                                                          return (
+                                                                                                                                                              <BrowserRouter>
+                                                                                                                                                                    <Routes>
+                                                                                                                                                                            <Route path="/" element={<Layout />}>
+                                                                                                                                                                                      <Route index element={<Home />} />
+                                                                                                                                                                                                <Route path="dashboard" element={<Dashboard />} />
+                                                                                                                                                                                                          <Route path="products" element={<Products />} />
+                                                                                                                                                                                                                    <Route path="sales" element={<Sales />} />
+                                                                                                                                                                                                                              <Route path="purchases" element={<Purchases />} />
+                                                                                                                                                                                                                                        <Route path="inventory" element={<Inventory />} />
+                                                                                                                                                                                                                                                  <Route path="customers" element={<Customers />} />
+                                                                                                                                                                                                                                                            <Route path="suppliers" element={<Suppliers />} />
+                                                                                                                                                                                                                                                                      <Route path="cashboxes" element={<CashBoxes />} />
+                                                                                                                                                                                                                                                                                <Route path="expenses" element={<Expenses />} />
+                                                                                                                                                                                                                                                                                          <Route path="reports" element={<ReportsPage />} />
+                                                                                                                                                                                                                                                                                                    <Route path="receipt" element={<Receipt />} />
+                                                                                                                                                                                                                                                                                                              <Route path="payment" element={<Payment />} />
+                                                                                                                                                                                                                                                                                                                        <Route path="trash" element={<Trash />} />
+                                                                                                                                                                                                                                                                                                                                  <Route path="guide" element={<Guide />} />
+                                                                                                                                                                                                                                                                                                                                            <Route path="store-info" element={<StoreInfo />} />
+                                                                                                                                                                                                                                                                                                                                                      <Route path="settings" element={<Settings />} />
+                                                                                                                                                                                                                                                                                                                                                                <Route path="notifications" element={<Notifications />} />
+                                                                                                                                                                                                                                                                                                                                                                          {/* صفحة المسؤول تظهر فقط عند بناء نسخة المسؤول */}
+                                                                                                                                                                                                                                                                                                                                                                                    {APP_MODE === 'admin' && (
+                                                                                                                                                                                                                                                                                                                                                                                                <Route path="admin" element={<AdminPage />} />
+                                                                                                                                                                                                                                                                                                                                                                                                          )}
+                                                                                                                                                                                                                                                                                                                                                                                                                  </Route>
+                                                                                                                                                                                                                                                                                                                                                                                                                        </Routes>
+                                                                                                                                                                                                                                                                                                                                                                                                                            </BrowserRouter>
+                                                                                                                                                                                                                                                                                                                                                                                                                              );
+                                                                                                                                                                                                                                                                                                                                                                                                                              }
 
-export default App;
+                                                                                                                                                                                                                                                                                                                                                                                                                              export default App;
