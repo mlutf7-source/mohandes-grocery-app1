@@ -43,6 +43,8 @@ function App() {
       setLoading(false);
     }
     check();
+    const interval = setInterval(check, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
