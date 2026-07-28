@@ -4,7 +4,7 @@ import Button from '@/components/ui/Button';
 import { Printer, Share2 } from 'lucide-react';
 import { sharePdfFromElement, printElement } from '@/utils/pdfShare';
 
-const fmt = (n: number) = Math.round(n).toLocaleString('en-US');
+const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
 const dt = (d: string) => new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
 
 export default function PurchasesReport() {
@@ -81,4 +81,4 @@ export default function PurchasesReport() {
       </div>
     </div>
   );
-                      }
+                        }
