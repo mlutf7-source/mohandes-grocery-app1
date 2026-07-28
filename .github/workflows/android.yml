@@ -22,12 +22,17 @@ jobs:
       - name: Build React app
         run: npm run build
 
-      # الخطوة الجديدة: تغيير معرف التطبيق إلى معرف المستخدم
+      # الخطوة المُصححة: تغيير معرف التطبيق
       - name: Set User App ID
         run: |
-          sed -i 's/"appId": "[^"]*"/"appId": "${{ secrets.USER_APP_ID }}"/' capacitor.config.json
-          # إذا كنت تستخدم capacitor.config.ts بدلاً من json، استخدم الأمر التالي:
-          # sed -i "s/appId: '[^']*'/appId: '${{ secrets.USER_APP_ID }}'/" capacitor.config.ts
+          # التحقق من وجود الملف وتعديله
+          if [ -f "capacitor.config.json" ]; then
+            sed -i 's/"appId": "[^"]*"/"appId": "${{ secrets.USER_APP_ID }}"/' capacitor.config.json
+          elif [ -f "capacitor.config.ts" ]; then
+            sed -i "s/appId: '[^']*'/appId: '${{ secrets.USER_APP_ID }}'/" capacitor.config.ts
+          else
+            echo "Warning: capacitor.config file not found!"
+          fi
 
       - name: Add Android platform
         run: npx cap add android
