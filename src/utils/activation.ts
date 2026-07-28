@@ -1,4 +1,5 @@
 import { Device } from '@capacitor/device';
+import { Capacitor } from '@capacitor/core';
 
 const TRIAL_DAYS = 30;
 const STORAGE_KEY = 'bakala-activation';
@@ -7,15 +8,19 @@ interface ActivationData {
   installDate: string;
   activated: boolean;
   activationCode: string;
+  deviceId: string;
 }
 
-export async function getDeviceId(): Promise<string> {
-  try {
-    const info = await Device.getId();
-    return info.identifier;
-  } catch {
-    return 'web-browser';
+async function getDeviceId(): Promise<string> {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const info = await Device.getId();
+      return info.identifier;
+    } catch {
+      return 'unknown-device';
+    }
   }
+  return localStorage.getItem('bakala-device-id') || `web-${Date.now()}`;
 }
 
 export async function getActivationData(): Promise<ActivationData> {
@@ -23,10 +28,15 @@ export async function getActivationData(): Promise<ActivationData> {
   if (raw) {
     return JSON.parse(raw);
   }
+  const deviceId = await getDeviceId();
+  if (!Capacitor.isNativePlatform()) {
+    localStorage.setItem('bakala-device-id', deviceId);
+  }
   const data: ActivationData = {
     installDate: new Date().toISOString(),
     activated: false,
     activationCode: '',
+    deviceId: deviceId,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   return data;
@@ -54,8 +64,28 @@ export async function activateApp(code: string): Promise<boolean> {
   const validCodes = JSON.parse(localStorage.getItem('bakala-admin-codes') || '[]');
   if (validCodes.includes(code)) {
     const data = await getActivationData();
+    const deviceId = await getDeviceId();
     data.activated = true;
     data.activationCode = code;
+    data.deviceId = deviceId;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    // إزالة الكود من قائمة الرموز الصالحة (استخدام مرة واحدة)
+    const updatedCodes = validCodes.filter((c: string) => c !== code);
+    localStorage.setItem('bakala-admin-codes', JSON.stringify(updatedCodes));
+    // تخزين الكود مع معرف الجهاز للسماح بإعادة التثبيت
+    const usedCodes = JSON.parse(localStorage.getItem('bakala-used-codes') || '{}');
+    usedCodes[code] = deviceId;
+    localStorage.setItem('bakala-used-codes', JSON.stringify(usedCodes));
+    return true;
+  }
+  // التحقق من الرموز المستخدمة مسبقاً على نفس الجهاز
+  const deviceId = await getDeviceId();
+  const usedCodes = JSON.parse(localStorage.getItem('bakala-used-codes') || '{}');
+  if (usedCodes[code] === deviceId) {
+    const data = await getActivationData();
+    data.activated = true;
+    data.activationCode = code;
+    data.deviceId = deviceId;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     return true;
   }
@@ -97,4 +127,4 @@ export function removeActivationCode(code: string): void {
 
 export function getActivationCodes(): string[] {
   return JSON.parse(localStorage.getItem('bakala-admin-codes') || '[]');
-                                                }
+    }
