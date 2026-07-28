@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android APK (User)
 
 on:
   workflow_dispatch:
@@ -8,7 +8,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -23,17 +22,18 @@ jobs:
       - name: Build React app
         run: npm run build
 
+      # الخطوة الجديدة: تغيير معرف التطبيق إلى معرف المستخدم
+      - name: Set User App ID
+        run: |
+          sed -i 's/"appId": "[^"]*"/"appId": "${{ secrets.USER_APP_ID }}"/' capacitor.config.json
+          # إذا كنت تستخدم capacitor.config.ts بدلاً من json، استخدم الأمر التالي:
+          # sed -i "s/appId: '[^']*'/appId: '${{ secrets.USER_APP_ID }}'/" capacitor.config.ts
+
       - name: Add Android platform
         run: npx cap add android
 
       - name: Sync Capacitor
         run: npx cap sync android
-
-      # ======= الخطوة المضافة =======
-      - name: Add Permissions to AndroidManifest
-        run: |
-          sed -i '/<application/i\    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />\n    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />' android/app/src/main/AndroidManifest.xml
-      # ==============================
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -50,5 +50,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: grocery-app-apk
+          name: user-app-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
