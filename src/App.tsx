@@ -55,10 +55,10 @@ function App() {
 
   useEffect(() => {
     if (!unlocked || !activated) return;
-    
+
     checkAllNotifications();
     autoBackup();
-    
+
     const interval = setInterval(() => {
       checkAllNotifications();
       autoBackup();
@@ -99,6 +99,7 @@ function App() {
           <Route path="store-info" element={<StoreInfo />} />
           <Route path="settings" element={<Settings />} />
           <Route path="notifications" element={<Notifications />} />
+          {/* صفحة المسؤول تظهر فقط عند بناء نسخة المسؤول */}
           {APP_MODE === 'admin' && (
             <Route path="admin" element={<AdminPage />} />
           )}
