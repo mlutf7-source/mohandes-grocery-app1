@@ -81,4 +81,4 @@ export default function PurchasesReport() {
       </div>
     </div>
   );
-                                           }
+                      }
