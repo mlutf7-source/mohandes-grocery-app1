@@ -38,10 +38,8 @@ jobs:
             sed -i "s/\"appId\": \"[^\"]*\"/\"appId\": \"$APP_ID\"/" capacitor.config.json
           fi
 
-      - name: Add Android platform
-        run: npx cap add android
-
-      - name: Sync Capacitor
+      # ✅ تم التعديل هنا: إزالة add android واستخدام sync فقط
+      - name: Sync Android platform
         run: npx cap sync android
 
       - name: Setup Java
