@@ -483,7 +483,40 @@ const delPur = (id: string) => {
               <span className="text-financial text-primary">{fmt(+pf.unitPrice / +pf.boxQty)}</span>
               <span className="text-small text-text-secondary mr-2">({fmt(+pf.quantity * +pf.boxQty)} حبة = {fmt(+pf.quantity * +pf.unitPrice)})</span>
             </div>
+        )}      {/* إضافة منتج للفاتورة */}
+      <Dialog open={prodOpen} onClose={() => setProdOpen(false)} title="إضافة منتج للفاتورة">
+        <div className="space-y-3 pb-4">
+          <div><label className={LC}>اسم المنتج</label><Input value={pf.name} onChange={e => setPf({ ...pf, name: e.target.value })} /></div>
+          <div><label className={LC}>الباركود</label><Input value={pf.barcode} onChange={e => setPf({ ...pf, barcode: e.target.value })} /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className={LC}>وحدة الشراء</label><select value={pf.unit} onChange={e => setPf({ ...pf, unit: e.target.value })} className="input-field"><option value="كرتون">كرتون</option><option value="حبة">حبة</option></select></div>
+            <div><label className={LC}>{pf.unit === 'كرتون' ? 'عدد الكراتين' : 'الكمية (حبة)'}</label><input type="number" value={pf.quantity} onChange={e => setPf({ ...pf, quantity: e.target.value })} onFocus={e => e.target.select()} className="w-full h-[42px] rounded-input border border-border text-center text-[19px] font-bold" inputMode="numeric" /></div>
+          </div>
+          {pf.unit === 'كرتون' && (
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className={LC}>عدد الحبات في الكرتون</label><input type="number" value={pf.boxQty} onChange={e => setPf({ ...pf, boxQty: e.target.value })} onFocus={e => e.target.select()} className="w-full h-[42px] rounded-input border border-border text-center text-[19px] font-bold" inputMode="numeric" /></div>
+              <div><label className={LC}>سعر الكرتون</label><input type="text" value={pf.unitPrice ? fmt(+pf.unitPrice) : ''} onChange={e => setPf({ ...pf, unitPrice: e.target.value.replace(/,/g, '') })} onFocus={e => e.target.select()} className="w-full h-[42px] rounded-input border border-border text-center text-[19px] font-bold" inputMode="decimal" /></div>
+            </div>
           )}
+          {pf.unit === 'حبة' && (
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className={LC}>سعر الشراء (حبة)</label><input type="text" value={pf.unitPrice ? fmt(+pf.unitPrice) : ''} onChange={e => setPf({ ...pf, unitPrice: e.target.value.replace(/,/g, '') })} onFocus={e => e.target.select()} className="w-full h-[42px] rounded-input border border-border text-center text-[19px] font-bold" inputMode="decimal" /></div>
+              <div><label className={LC}>سعر البيع (حبة)</label><input type="text" value={pf.sellingPrice ? fmt(+pf.sellingPrice) : ''} onChange={e => setPf({ ...pf, sellingPrice: e.target.value.replace(/,/g, '') })} onFocus={e => e.target.select()} className="w-full h-[42px] rounded-input border border-border text-center text-[19px] font-bold" inputMode="decimal" /></div>
+            </div>
+          )}
+          {pf.unit === 'كرتون' && +pf.boxQty > 0 && +pf.unitPrice > 0 && (
+            <div className="bg-primary-light rounded-input p-3 text-center">
+              <span className="text-small text-text-secondary">سعر الحبة: </span>
+              <span className="text-financial text-primary">{fmt(+pf.unitPrice / +pf.boxQty)}</span>
+              <span className="text-small text-text-secondary mr-2">({fmt(+pf.quantity * +pf.boxQty)} حبة = {fmt(+pf.quantity * +pf.unitPrice)})</span>
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className={LC}>سعر البيع (حبة)</label><input type="text" value={pf.sellingPrice ? fmt(+pf.sellingPrice) : ''} onChange={e => setPf({ ...pf, sellingPrice: e.target.value.replace(/,/g, '') })} onFocus={e => e.target.select()} className="w-full h-[42px] rounded-input border border-border text-center text-[19px] font-bold" inputMode="decimal" /></div>
+            <div><label className={LC}>تنبيه الحد الأدنى</label><input type="number" value={pf.minStock} onChange={e => setPf({ ...pf, minStock: e.target.value })} onFocus={e => e.target.select()} className="w-full h-[42px] rounded-input border border-border text-center text-[19px] font-bold" inputMode="numeric" /></div>
+          </div>
+          <Button fullWidth onClick={addToCart}>إضافة إلى الفاتورة</Button>
+        </div>
       </Dialog>
 
       <BarcodeScanner
@@ -495,4 +528,4 @@ const delPur = (id: string) => {
 
     </div>
   );
-      }
+                                                                }
