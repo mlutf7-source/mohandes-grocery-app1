@@ -484,3 +484,15 @@ const delPur = (id: string) => {
               <span className="text-small text-text-secondary mr-2">({fmt(+pf.quantity * +pf.boxQty)} حبة = {fmt(+pf.quantity * +pf.unitPrice)})</span>
             </div>
           )}
+      </Dialog>
+
+      <BarcodeScanner
+        open={barcodeOpen}
+        onClose={() => setBarcodeOpen(false)}
+        onDetected={handleBarcodeDetected}
+        onProductFound={(product: any) => { openPf(product); }}
+      />
+
+    </div>
+  );
+      }
