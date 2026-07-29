@@ -35,28 +35,6 @@ export default function Payment() {
     const amt = +amount || 0;
     if (!amt || !selectedId) return;
 
-    // التحقق من وجود سند صرف مكرر (فقط عند الإضافة الجديدة)
-    if (!editingId) {
-      const duplicate = s.cashMovements.find((m: any) => 
-        m.type === 'withdraw' &&
-        m.referenceType === 'manual' &&
-        m.referenceId === selectedId &&
-        m.amount === amt &&
-        m.createdAt.startsWith(date)
-      );
-
-      if (duplicate) {
-        const confirmSave = confirm(
-          `⚠️ يوجد سند صرف سابق بنفس البيانات:\n` +
-          `- الحساب: ${selected?.name || 'غير معروف'}\n` +
-          `- المبلغ: ${fmt(amt)} ${currency}\n` +
-          `- التاريخ: ${dt(duplicate.createdAt)}\n\n` +
-          `هل تريد الحفظ (سيتم إنشاء سند جديد) أم إلغاء الحفظ؟`
-        );
-        if (!confirmSave) return;
-      }
-    }
-
     if (editingId) {
       s.updateCashMovement(editingId, { amount: amt, date, notes, cashBoxId: box });
     } else {
@@ -72,26 +50,23 @@ export default function Payment() {
 
     setAmount('');
     setNotes('');
-    // تم حذف السطر setSelectedId('') للحفاظ على الحساب المحدد
     setEditingId(null);
     setHasChanges(false);
   };
 
-  // تم إصلاح مشكلة الحذف ليعتمد على بيانات السند نفسه وليس على selected الحالي
   const deleteMovement = (m: any) => {
     if (confirm('سيتم نقل السند إلى سلة المحذوفات. متابعة؟')) {
-      // الحصول على الحساب المرتبط بالسند نفسه
       const target = type === 'customer' 
-        ? s.customers.find(c => c.id === m.referenceId) 
-        : s.suppliers.find(sup => sup.id === m.referenceId);
+        ? s.customers.find((c: any) => c.id === m.referenceId) 
+        : s.suppliers.find((sup: any) => sup.id === m.referenceId);
       
       if (!target) return;
 
       let newBalance;
       if (type === 'customer') {
-        newBalance = (target.balance || 0) - m.amount; // الصرف للعميل يزيد رصيده علينا
+        newBalance = (target.balance || 0) - m.amount;
       } else {
-        newBalance = (target.balance || 0) + m.amount; // الصرف للمورد يزيد رصيده
+        newBalance = (target.balance || 0) + m.amount;
       }
       
       if (type === 'customer') s.updateCustomer(m.referenceId, { balance: newBalance });
@@ -148,17 +123,9 @@ export default function Payment() {
 
       <div className="grid grid-cols-2 gap-3 mb-4">
         <Input label="المبلغ" type="text" inputMode="decimal" value={amount ? fmt(+amount) : ''} onChange={e => handleChange(setAmount, e.target.value.replace(/,/g, ''))} />
-        
-        {/* تم تعديل حقل التاريخ لإجبار الأرقام الإنجليزية */}
         <div className="w-full">
           <label className="block text-sm font-semibold mb-1">التاريخ</label>
-          <input
-            type="date"
-            value={date}
-            onChange={e => handleChange(setDate, e.target.value)}
-            className="input-field"
-            dir="ltr"
-          />
+          <input type="date" value={date} onChange={e => handleChange(setDate, e.target.value)} className="input-field" dir="ltr" />
         </div>
       </div>
 
@@ -203,4 +170,4 @@ export default function Payment() {
       )}
     </div>
   );
-      }
+        }
