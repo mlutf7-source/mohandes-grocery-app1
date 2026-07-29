@@ -95,7 +95,7 @@ export const useStore = create<any>()(persist((set, get) => ({
     trash: { ...s.trash, cashMovements: s.trash.cashMovements.filter((x: any) => x.id !== id) },
   })),
 
-  // ========== البيع ==========
+  // ========== البيع (Sales) ==========
   addSale: (sale: any) => set((s: any) => {
     const ns = { ...sale, id: gid(), invoiceNo: s.sales.length + 1 };
     const up: any = { sales: [...s.sales, ns] };
@@ -205,9 +205,7 @@ export const useStore = create<any>()(persist((set, get) => ({
 
   deleteSale: (id: string) => get()._del('sales', id),
   restoreSale: (id: string) => get()._restore('sales', id),
-  permanentDeleteSale: (id: string) => get()._permDel('sales', id),
-
-  // ========== المشتريات ==========
+  permanentDeleteSale: (id: string) => get()._permDel('sales', id),  // ========== المشتريات (Purchases) ==========
   addPurchase: (purchase: any) => set((s: any) => {
     const np = { ...purchase, id: gid(), invoiceNo: s.purchases.length + 1 };
     const up: any = { purchases: [...s.purchases, np] };
@@ -240,10 +238,88 @@ export const useStore = create<any>()(persist((set, get) => ({
     }
     return up;
   }),
+
+  // دالة تعديل فاتورة شراء (جديدة - تمنع الخصم المزدوج)
+  updatePurchase: (id: string, purchaseData: any) => set((s: any) => {
+    const oldPurchase = s.purchases.find((x: any) => x.id === id);
+    if (!oldPurchase) return s;
+
+    // 1. التراجع عن تأثير الفاتورة القديمة (إعادة المخزون، رصيد المورد، والحركة المالية)
+    let updatedProducts = s.products.map((p: any) => {
+      const oldItem = oldPurchase.items.find((i: any) => i.productId === p.id);
+      if (oldItem) {
+        const oldQty = oldItem.unit === 'كرتون' && oldItem.boxQty ? oldItem.quantity * oldItem.boxQty : oldItem.quantity;
+        return { ...p, stockQuantity: Math.max(0, p.stockQuantity - oldQty) };
+      }
+      return p;
+    });
+
+    let updatedSuppliers = s.suppliers;
+    if (oldPurchase.supplierId && oldPurchase.remaining > 0) {
+      updatedSuppliers = updatedSuppliers.map((sup: any) =>
+        sup.id === oldPurchase.supplierId ? { ...sup, balance: sup.balance - oldPurchase.remaining } : sup
+      );
+    }
+
+    // حذف الحركة المالية القديمة (إرجاع الأموال للصندوق)
+    let updatedCashMovements = s.cashMovements.filter((m: any) =>
+      !(m.referenceType === 'purchase' && m.referenceId === id)
+    );
+    let updatedCashBoxes = s.cashBoxes.map((b: any) => b);
+
+    // 2. إنشاء الفاتورة الجديدة (نفس id والرقم)
+    const newPurchase = {
+      ...purchaseData,
+      id: oldPurchase.id,
+      invoiceNo: oldPurchase.invoiceNo,
+      createdAt: oldPurchase.createdAt,
+      updatedAt: now()
+    };
+    const updatedPurchases = s.purchases.map((x: any) => x.id === id ? newPurchase : x);
+
+    // 3. تطبيق تأثير الفاتورة الجديدة (زيادة المخزون، رصيد المورد، الحركة المالية)
+    newPurchase.items.forEach((item: any) => {
+      const idx = updatedProducts.findIndex((p: any) => p.id === item.productId);
+      const addQty = item.unit === 'كرتون' && item.boxQty ? item.quantity * item.boxQty : item.quantity;
+      const ppu = item.unit === 'كرتون' && item.boxQty ? item.unitPrice / item.boxQty : item.unitPrice;
+      const sellingPrice = item.sellingPrice ? +item.sellingPrice : (idx >= 0 ? updatedProducts[idx].sellingPrice || 0 : 0);
+      const minStock = item.minStock ? +item.minStock : (idx >= 0 ? updatedProducts[idx].minStock || 20 : 20);
+
+      if (idx >= 0) {
+        updatedProducts[idx] = { ...updatedProducts[idx], stockQuantity: updatedProducts[idx].stockQuantity + addQty, purchasePrice: ppu, lastPurchasePrice: ppu, sellingPrice: sellingPrice || updatedProducts[idx].sellingPrice || 0, minStock, updatedAt: now() };
+      } else {
+        updatedProducts.push({ id: item.productId || gid(), name: item.productName, barcode: item.barcode || '', stockQuantity: addQty, boxQty: item.boxQty || 1, unit: item.unit || 'حبة', purchasePrice: ppu, lastPurchasePrice: ppu, sellingPrice, minStock, openingStock: 0, createdAt: now(), updatedAt: now() });
+      }
+    });
+
+    if (newPurchase.supplierId && newPurchase.remaining > 0) {
+      updatedSuppliers = updatedSuppliers.map((sup: any) =>
+        sup.id === newPurchase.supplierId ? { ...sup, balance: sup.balance + newPurchase.remaining, updatedAt: now() } : sup
+      );
+    }
+
+    const finalPaid = Number(newPurchase.paid) || 0;
+    if (newPurchase.cashBoxId && finalPaid > 0) {
+      const box = updatedCashBoxes.find((b: any) => b.id === newPurchase.cashBoxId);
+      const desc = newPurchase.remaining > 0 ? `دفع من فاتورة شراء #${newPurchase.invoiceNo}` : `فاتورة شراء #${newPurchase.invoiceNo}`;
+      updatedCashMovements = [...updatedCashMovements, { id: gid(), cashBoxId: newPurchase.cashBoxId, type: 'withdraw', amount: finalPaid, description: desc, referenceType: 'purchase', referenceId: newPurchase.id, createdAt: now() }];
+      if (box) updatedCashBoxes = updatedCashBoxes.map((b: any) => b.id === newPurchase.cashBoxId ? { ...b, balance: b.balance - finalPaid } : b);
+    }
+
+    return {
+      purchases: updatedPurchases,
+      products: updatedProducts,
+      suppliers: updatedSuppliers,
+      cashMovements: updatedCashMovements,
+      cashBoxes: updatedCashBoxes,
+    };
+  }),
+
   deletePurchase: (id: string) => get()._del('purchases', id),
   restorePurchase: (id: string) => get()._restore('purchases', id),
   permanentDeletePurchase: (id: string) => get()._permDel('purchases', id),
 
+  // ========== المصروفات (Expenses) ==========
   addExpense: (e: any) => set((s: any) => {
     const ne = { ...e, id: gid() };
     const box = s.cashBoxes.find((b: any) => b.id === e.cashBoxId);
@@ -256,6 +332,7 @@ export const useStore = create<any>()(persist((set, get) => ({
   restoreExpense: (id: string) => get()._restore('expenses', id),
   permanentDeleteExpense: (id: string) => get()._permDel('expenses', id),
 
+  // ========== دوال التقارير والمساعدات ==========
   getCustomerBalance: (id: string) => get().customers.find((c: any) => c.id === id)?.balance ?? 0,
   getSupplierBalance: (id: string) => get().suppliers.find((s: any) => s.id === id)?.balance ?? 0,
   getCashBoxBalance: (id: string) => get().cashBoxes.find((b: any) => b.id === id)?.balance ?? 0,
