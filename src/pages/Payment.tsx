@@ -11,143 +11,196 @@ const dt = (d: string) => new Date(d).toLocaleDateString('en-US', { year: 'numer
 
 export default function Payment() {
   const s = useStore();
-    const currency = s.settings?.currency || 'ريال يمني';
-      const [type, setType] = useState<'customer' | 'supplier'>('supplier');
-        const [selectedId, setSelectedId] = useState('');
-          const [amount, setAmount] = useState('');
-            const [box, setBox] = useState('default-cash-box');
-              const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-                const [notes, setNotes] = useState('');
-                  const [editingId, setEditingId] = useState<string | null>(null);
-                    const [hasChanges, setHasChanges] = useState(false);
+  const currency = s.settings?.currency || 'ريال يمني';
+  const [type, setType] = useState<'customer' | 'supplier'>('supplier');
+  const [selectedId, setSelectedId] = useState('');
+  const [amount, setAmount] = useState('');
+  const [box, setBox] = useState('default-cash-box');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [notes, setNotes] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
 
-                      usePreventLeave(hasChanges);
+  usePreventLeave(hasChanges);
 
-                        const list = type === 'customer' ? s.customers : s.suppliers;
-                          const selected = list.find((x: any) => x.id === selectedId);
+  const list = type === 'customer' ? s.customers : s.suppliers;
+  const selected = list.find((x: any) => x.id === selectedId);
 
-                            const allPayments = s.cashMovements.filter((m: any) => m.type === 'withdraw' && m.referenceType === 'manual');
-                              const nextPaymentNo = allPayments.length + 1;
+  const allPayments = s.cashMovements.filter((m: any) => m.type === 'withdraw' && m.referenceType === 'manual');
+  const nextPaymentNo = allPayments.length + 1;
 
-                                const handleChange = (setter: any, value: string) => { setter(value); setHasChanges(true); };
+  const handleChange = (setter: any, value: string) => { setter(value); setHasChanges(true); };
 
-                                  const save = () => {
-                                      const amt = +amount || 0;
-                                          if (!amt || !selectedId) return;
+  const save = () => {
+    const amt = +amount || 0;
+    if (!amt || !selectedId) return;
 
-                                              if (editingId) {
-                                                    s.updateCashMovement(editingId, { amount: amt, date, notes, cashBoxId: box });
-                                                        } else {
-                                                              if (type === 'customer') s.updateCustomer(selectedId, { balance: (selected?.balance || 0) + amt });
-                                                                    else s.updateSupplier(selectedId, { balance: Math.max(0, (selected?.balance || 0) - amt) });
-                                                                          s.addCashMovement({
-                                                                                  cashBoxId: box, type: 'withdraw', amount: amt,
-                                                                                          description: notes ? `سند صرف - ${notes}` : `سند صرف`,
-                                                                                                  referenceType: 'manual', referenceId: selectedId, createdAt: new Date(date).toISOString(),
-                                                                                                          paymentNo: nextPaymentNo,
-                                                                                                                });
-                                                                                                                    }
+    // التحقق من وجود سند صرف مكرر (فقط عند الإضافة الجديدة)
+    if (!editingId) {
+      const duplicate = s.cashMovements.find((m: any) => 
+        m.type === 'withdraw' &&
+        m.referenceType === 'manual' &&
+        m.referenceId === selectedId &&
+        m.amount === amt &&
+        m.createdAt.startsWith(date)
+      );
 
-                                                                                                                        setAmount(''); setNotes(''); setSelectedId(''); setEditingId(null); setHasChanges(false);
-                                                                                                                          };
+      if (duplicate) {
+        const confirmSave = confirm(
+          `⚠️ يوجد سند صرف سابق بنفس البيانات:\n` +
+          `- الحساب: ${selected?.name || 'غير معروف'}\n` +
+          `- المبلغ: ${fmt(amt)} ${currency}\n` +
+          `- التاريخ: ${dt(duplicate.createdAt)}\n\n` +
+          `هل تريد الحفظ (سيتم إنشاء سند جديد) أم إلغاء الحفظ؟`
+        );
+        if (!confirmSave) return;
+      }
+    }
 
-                                                                                                                            const deleteMovement = (m: any) => {
-                                                                                                                                if (confirm('سيتم نقل السند إلى سلة المحذوفات. متابعة؟')) {
-                                                                                                                                      if (type === 'customer') s.updateCustomer(m.referenceId, { balance: Math.max(0, (selected?.balance || 0) - m.amount) });
-                                                                                                                                            else s.updateSupplier(m.referenceId, { balance: (selected?.balance || 0) + m.amount });
-                                                                                                                                                  s.deleteCashMovement(m.id);
-                                                                                                                                                      }
-                                                                                                                                                        };
+    if (editingId) {
+      s.updateCashMovement(editingId, { amount: amt, date, notes, cashBoxId: box });
+    } else {
+      if (type === 'customer') s.updateCustomer(selectedId, { balance: (selected?.balance || 0) + amt });
+      else s.updateSupplier(selectedId, { balance: Math.max(0, (selected?.balance || 0) - amt) });
+      s.addCashMovement({
+        cashBoxId: box, type: 'withdraw', amount: amt,
+        description: notes ? `سند صرف - ${notes}` : `سند صرف`,
+        referenceType: 'manual', referenceId: selectedId, createdAt: new Date(date).toISOString(),
+        paymentNo: nextPaymentNo,
+      });
+    }
 
-                                                                                                                                                          const editMovement = (m: any) => {
-                                                                                                                                                              setEditingId(m.id);
-                                                                                                                                                                  setSelectedId(m.referenceId);
-                                                                                                                                                                      setAmount(m.amount.toString());
-                                                                                                                                                                          setBox(m.cashBoxId || 'default-cash-box');
-                                                                                                                                                                              setDate(new Date(m.createdAt).toISOString().split('T')[0]);
-                                                                                                                                                                                  setNotes(m.description.replace('سند صرف - ', '').replace('سند صرف', ''));
-                                                                                                                                                                                      setHasChanges(true);
-                                                                                                                                                                                        };
+    setAmount('');
+    setNotes('');
+    // تم حذف السطر setSelectedId('') للحفاظ على الحساب المحدد
+    setEditingId(null);
+    setHasChanges(false);
+  };
 
-                                                                                                                                                                                          return (
-                                                                                                                                                                                              <div className="page-container">
-                                                                                                                                                                                                    <h1 className="page-title">سند صرف</h1>
+  // تم إصلاح مشكلة الحذف ليعتمد على بيانات السند نفسه وليس على selected الحالي
+  const deleteMovement = (m: any) => {
+    if (confirm('سيتم نقل السند إلى سلة المحذوفات. متابعة؟')) {
+      // الحصول على الحساب المرتبط بالسند نفسه
+      const target = type === 'customer' 
+        ? s.customers.find(c => c.id === m.referenceId) 
+        : s.suppliers.find(sup => sup.id === m.referenceId);
+      
+      if (!target) return;
 
-                                                                                                                                                                                                          <div className="flex gap-2 mb-4">
-                                                                                                                                                                                                                  <button onClick={() => setType('supplier')} className={`flex-1 py-3 rounded-btn font-semibold ${type === 'supplier' ? 'bg-danger text-white' : 'bg-danger/10 text-danger'}`}>إلى مورد</button>
-                                                                                                                                                                                                                          <button onClick={() => setType('customer')} className={`flex-1 py-3 rounded-btn font-semibold ${type === 'customer' ? 'bg-danger text-white' : 'bg-danger/10 text-danger'}`}>إلى عميل</button>
-                                                                                                                                                                                                                                </div>
+      let newBalance;
+      if (type === 'customer') {
+        newBalance = (target.balance || 0) - m.amount; // الصرف للعميل يزيد رصيده علينا
+      } else {
+        newBalance = (target.balance || 0) + m.amount; // الصرف للمورد يزيد رصيده
+      }
+      
+      if (type === 'customer') s.updateCustomer(m.referenceId, { balance: newBalance });
+      else s.updateSupplier(m.referenceId, { balance: newBalance });
+      
+      s.deleteCashMovement(m.id);
+    }
+  };
 
-                                                                                                                                                                                                                                      <div className="mb-4">
-                                                                                                                                                                                                                                              <label className="block text-sm font-semibold mb-1">{type === 'customer' ? 'العميل' : 'المورد'}</label>
-                                                                                                                                                                                                                                                      <select value={selectedId} onChange={e => handleChange(setSelectedId, e.target.value)} className="input-field">
-                                                                                                                                                                                                                                                                <option value="">اختر {type === 'customer' ? 'العميل' : 'المورد'}</option>
-                                                                                                                                                                                                                                                                          {list.map((x: any) => <option key={x.id} value={x.id}>{x.name}</option>)}
-                                                                                                                                                                                                                                                                                  </select>
-                                                                                                                                                                                                                                                                                        </div>
+  const editMovement = (m: any) => {
+    setEditingId(m.id);
+    setSelectedId(m.referenceId);
+    setAmount(m.amount.toString());
+    setBox(m.cashBoxId || 'default-cash-box');
+    setDate(new Date(m.createdAt).toISOString().split('T')[0]);
+    setNotes(m.description.replace('سند صرف - ', '').replace('سند صرف', ''));
+    setHasChanges(true);
+  };
 
-                                                                                                                                                                                                                                                                                              {selected && (
-                                                                                                                                                                                                                                                                                                      <Card accent className="mb-4">
-                                                                                                                                                                                                                                                                                                                <div className="flex justify-between items-center">
-                                                                                                                                                                                                                                                                                                                            <span className="text-small text-text-secondary">الرصيد {selected.balance > 0 ? (type === 'supplier' ? 'له' : 'عليه') : selected.balance < 0 ? (type === 'supplier' ? 'عليه' : 'له') : ''}</span>
-                                                                                                                                                                                                                                                                                                                                        <span className={`text-financial ${selected.balance > 0 ? (type === 'supplier' ? 'text-success' : 'text-danger') : selected.balance < 0 ? (type === 'supplier' ? 'text-danger' : 'text-success') : 'text-info'}`}>
-                                                                                                                                                                                                                                                                                                                                                      {fmt(Math.abs(selected.balance))} <span className="text-small">{currency}</span>
-                                                                                                                                                                                                                                                                                                                                                                  </span>
-                                                                                                                                                                                                                                                                                                                                                                            </div>
-                                                                                                                                                                                                                                                                                                                                                                                    </Card>
-                                                                                                                                                                                                                                                                                                                                                                                          )}
+  return (
+    <div className="page-container">
+      <h1 className="page-title">سند صرف</h1>
 
-                                                                                                                                                                                                                                                                                                                                                                                                <div className="mb-4">
-                                                                                                                                                                                                                                                                                                                                                                                                        <label className="block text-sm font-semibold mb-1">الصندوق</label>
-                                                                                                                                                                                                                                                                                                                                                                                                                <select value={box} onChange={e => handleChange(setBox, e.target.value)} className="input-field">
-                                                                                                                                                                                                                                                                                                                                                                                                                          {s.cashBoxes.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
-                                                                                                                                                                                                                                                                                                                                                                                                                                  </select>
-                                                                                                                                                                                                                                                                                                                                                                                                                                        </div>
+      <div className="flex gap-2 mb-4">
+        <button onClick={() => setType('supplier')} className={`flex-1 py-3 rounded-btn font-semibold ${type === 'supplier' ? 'bg-danger text-white' : 'bg-danger/10 text-danger'}`}>إلى مورد</button>
+        <button onClick={() => setType('customer')} className={`flex-1 py-3 rounded-btn font-semibold ${type === 'customer' ? 'bg-danger text-white' : 'bg-danger/10 text-danger'}`}>إلى عميل</button>
+      </div>
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                              <div className="grid grid-cols-2 gap-3 mb-4">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                      <Input label="المبلغ" type="text" inputMode="decimal" value={amount ? fmt(+amount) : ''} onChange={e => handleChange(setAmount, e.target.value.replace(/,/g, ''))} />
-                                                                                                                                                                                                                                                                                                                                                                                                                                                              <Input label="التاريخ" type="date" value={date} onChange={e => handleChange(setDate, e.target.value)} />
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </div>
+      <div className="mb-4">
+        <label className="block text-sm font-semibold mb-1">{type === 'customer' ? 'العميل' : 'المورد'}</label>
+        <select value={selectedId} onChange={e => handleChange(setSelectedId, e.target.value)} className="input-field">
+          <option value="">اختر {type === 'customer' ? 'العميل' : 'المورد'}</option>
+          {list.map((x: any) => <option key={x.id} value={x.id}>{x.name}</option>)}
+        </select>
+      </div>
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                          <div className="mb-4"><Input label="الملاحظات" value={notes} onChange={e => handleChange(setNotes, e.target.value)} /></div>
+      {selected && (
+        <Card accent className="mb-4">
+          <div className="flex justify-between items-center">
+            <span className="text-small text-text-secondary">الرصيد {selected.balance > 0 ? (type === 'supplier' ? 'له' : 'عليه') : selected.balance < 0 ? (type === 'supplier' ? 'عليه' : 'له') : ''}</span>
+            <span className={`text-financial ${selected.balance > 0 ? (type === 'supplier' ? 'text-success' : 'text-danger') : selected.balance < 0 ? (type === 'supplier' ? 'text-danger' : 'text-success') : 'text-info'}`}>
+              {fmt(Math.abs(selected.balance))} <span className="text-small">{currency}</span>
+            </span>
+          </div>
+        </Card>
+      )}
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <Button fullWidth variant="danger" onClick={save}><ArrowUp size={20} />{editingId ? 'تحديث' : 'حفظ'} سند الصرف</Button>
+      <div className="mb-4">
+        <label className="block text-sm font-semibold mb-1">الصندوق</label>
+        <select value={box} onChange={e => handleChange(setBox, e.target.value)} className="input-field">
+          {s.cashBoxes.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
+        </select>
+      </div>
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      {allPayments.length > 0 && (
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              <div className="mt-6">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        <h2 className="text-card-title mb-3 text-center">آخر السندات</h2>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  {[...allPayments].reverse().map((m: any) => {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              const owner = s.customers.find((c: any) => c.id === m.referenceId) || s.suppliers.find((sup: any) => sup.id === m.referenceId);
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          const boxName = s.cashBoxes.find((b: any) => b.id === m.cashBoxId)?.name || '';
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      return (
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <Card key={m.id} className="mb-3 !p-4">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <div className="flex justify-between items-center mb-3">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      <div className="flex gap-1">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          <button onClick={() => editMovement(m)} className="flex items-center gap-1 px-2 py-1 bg-success/10 text-success rounded-btn text-small"><Pen size={12} />تعديل</button>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              <button onClick={() => deleteMovement(m)} className="flex items-center gap-1 px-2 py-1 bg-danger/10 text-danger rounded-btn text-small"><Trash2 size={12} />حذف</button>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  <div className="flex items-center gap-2">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      <span className="bg-danger/10 text-danger px-3 py-1 rounded-full text-small font-bold">#{m.paymentNo || m.id.slice(-6)}</span>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          <span className="font-bold text-danger flex items-center gap-1"><ArrowUp size={16} />سند صرف</span>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            <div className="space-y-0 border border-border rounded-xl overflow-hidden">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              <div className="flex justify-between items-center px-3 py-2 border-b border-border"><span className="text-small text-text-secondary flex items-center gap-2"><User size={14} className="text-danger" />الحساب</span><span className="font-semibold text-small">{owner?.name || '-'}</span></div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                <div className="flex justify-between items-center px-3 py-2 border-b border-border"><span className="text-small text-text-secondary flex items-center gap-2"><Calendar size={14} className="text-danger" />التاريخ</span><span className="font-semibold text-small">{dt(m.createdAt)}</span></div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  <div className="flex justify-between items-center px-3 py-2 border-b border-border"><span className="text-small text-text-secondary flex items-center gap-2"><DollarSign size={14} className="text-danger" />المبلغ</span><span className="text-financial text-danger">{fmt(m.amount)} <span className="text-small">{currency}</span></span></div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    <div className="flex justify-between items-center px-3 py-2"><span className="text-small text-text-secondary flex items-center gap-2"><PiggyBank size={14} className="text-danger" />الصندوق</span><span className="font-semibold text-small">{boxName}</span></div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    {m.description && m.description !== 'سند صرف' && (
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      <div className="mt-2 bg-danger/5 rounded-lg p-2 flex items-center gap-2 text-small">
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          <FileText size={14} className="text-danger" />
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              <span>الملاحظات: {m.description.replace('سند صرف - ', '')}</span>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                )}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              </Card>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          );
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    })}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  )}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      </div>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        );
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        }
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <Input label="المبلغ" type="text" inputMode="decimal" value={amount ? fmt(+amount) : ''} onChange={e => handleChange(setAmount, e.target.value.replace(/,/g, ''))} />
+        
+        {/* تم تعديل حقل التاريخ لإجبار الأرقام الإنجليزية */}
+        <div className="w-full">
+          <label className="block text-sm font-semibold mb-1">التاريخ</label>
+          <input
+            type="date"
+            value={date}
+            onChange={e => handleChange(setDate, e.target.value)}
+            className="input-field"
+            dir="ltr"
+          />
+        </div>
+      </div>
+
+      <div className="mb-4"><Input label="الملاحظات" value={notes} onChange={e => handleChange(setNotes, e.target.value)} /></div>
+
+      <Button fullWidth variant="danger" onClick={save}><ArrowUp size={20} />{editingId ? 'تحديث' : 'حفظ'} سند الصرف</Button>
+
+      {allPayments.length > 0 && (
+        <div className="mt-6">
+          <h2 className="text-card-title mb-3 text-center">آخر السندات</h2>
+          {[...allPayments].reverse().map((m: any) => {
+            const owner = s.customers.find((c: any) => c.id === m.referenceId) || s.suppliers.find((sup: any) => sup.id === m.referenceId);
+            const boxName = s.cashBoxes.find((b: any) => b.id === m.cashBoxId)?.name || '';
+            return (
+              <Card key={m.id} className="mb-3 !p-4">
+                <div className="flex justify-between items-center mb-3">
+                  <div className="flex gap-1">
+                    <button onClick={() => editMovement(m)} className="flex items-center gap-1 px-2 py-1 bg-success/10 text-success rounded-btn text-small"><Pen size={12} />تعديل</button>
+                    <button onClick={() => deleteMovement(m)} className="flex items-center gap-1 px-2 py-1 bg-danger/10 text-danger rounded-btn text-small"><Trash2 size={12} />حذف</button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="bg-danger/10 text-danger px-3 py-1 rounded-full text-small font-bold">#{m.paymentNo || m.id.slice(-6)}</span>
+                    <span className="font-bold text-danger flex items-center gap-1"><ArrowUp size={16} />سند صرف</span>
+                  </div>
+                </div>
+                <div className="space-y-0 border border-border rounded-xl overflow-hidden">
+                  <div className="flex justify-between items-center px-3 py-2 border-b border-border"><span className="text-small text-text-secondary flex items-center gap-2"><User size={14} className="text-danger" />الحساب</span><span className="font-semibold text-small">{owner?.name || '-'}</span></div>
+                  <div className="flex justify-between items-center px-3 py-2 border-b border-border"><span className="text-small text-text-secondary flex items-center gap-2"><Calendar size={14} className="text-danger" />التاريخ</span><span className="font-semibold text-small">{dt(m.createdAt)}</span></div>
+                  <div className="flex justify-between items-center px-3 py-2 border-b border-border"><span className="text-small text-text-secondary flex items-center gap-2"><DollarSign size={14} className="text-danger" />المبلغ</span><span className="text-financial text-danger">{fmt(m.amount)} <span className="text-small">{currency}</span></span></div>
+                  <div className="flex justify-between items-center px-3 py-2"><span className="text-small text-text-secondary flex items-center gap-2"><PiggyBank size={14} className="text-danger" />الصندوق</span><span className="font-semibold text-small">{boxName}</span></div>
+                </div>
+                {m.description && m.description !== 'سند صرف' && (
+                  <div className="mt-2 bg-danger/5 rounded-lg p-2 flex items-center gap-2 text-small">
+                    <FileText size={14} className="text-danger" />
+                    <span>الملاحظات: {m.description.replace('سند صرف - ', '')}</span>
+                  </div>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+      }
