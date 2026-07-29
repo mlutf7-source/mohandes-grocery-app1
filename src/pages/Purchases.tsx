@@ -49,6 +49,9 @@ export default function Purchases() {
   usePreventLeave(hasChanges);
   useEffect(() => { if (editPur && topRef.current) topRef.current.scrollIntoView({ behavior: 'smooth' }); }, [editPur]);
 
+  // حساب الإجمالي (يجب أن يكون قبل استخدامه في الدوال المساعدة)
+  const total = items.reduce((sum: number, i: any) => sum + i.total, 0);
+
   // دوال مساعدة
   const isCashPurchase = !supplier;
   const finalPaid = isCashPurchase ? total : (+paid || 0);
@@ -59,8 +62,7 @@ export default function Purchases() {
   const supName = (id: string) => s.suppliers.find((x: any) => x.id === id)?.name || 'شراء نقدي';
   const boxName = (id: string) => s.cashBoxes.find((b: any) => b.id === id)?.name || '';
 
-  // حساب الإجمالي والفلترة
-  const total = items.reduce((sum: number, i: any) => sum + i.total, 0);
+  // الفلترة (useMemo)
   const filtered = useMemo(() => {
     let list = s.products;
     if (search) list = list.filter((p: any) => p.name.includes(search) || p.barcode.includes(search));
@@ -73,112 +75,116 @@ export default function Purchases() {
   const updPrice = (id: string, v: string) => { const n = +v.replace(/,/g, '') || 0; setItems(items.map((i: any) => { if (i.productId !== id) return i; const pp = i.unit === 'كرتون' && i.boxQty ? n / i.boxQty : n; return { ...i, unitPrice: n, total: i.quantity * n, pricePerPiece: pp }; })); setHasChanges(true); };
 
   // دوال المورد
-  const saveSup = () => { if (!supForm.name) return; if (s.suppliers.find((x: any) => x.name === supForm.name)) { alert('يوجد مورد بنفس الاسم'); return; } s.addSupplier({ id: '', ...supForm, balance: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }); setSupForm({ name: '', phone: '', address: '', notes: '' }); setSupOpen(false); };// فتح نافذة إضافة منتج
-const openPf = (p?: any) => {
-  if (p) {
-    const isCarton = p.unit === 'كرتون' && p.boxQty;
-    const cartonPrice = isCarton ? (p.lastPurchasePrice || p.purchasePrice || 0) * p.boxQty : (p.lastPurchasePrice || p.purchasePrice || 0);
-    setPf({
-      name: p.name,
-      barcode: p.barcode || '',
-      quantity: '1',
-      unit: p.unit || 'حبة',
-      boxQty: p.boxQty?.toString() || '',
-      unitPrice: cartonPrice.toString(),
-      sellingPrice: (p.sellingPrice || '').toString(),
-      minStock: (p.minStock || '20').toString()
-    });
-  } else {
-    setPf({ name: '', barcode: '', quantity: '1', unit: 'كرتون', boxQty: '', unitPrice: '', sellingPrice: '', minStock: '' });
-  }
-  setShow(false);
-  setProdOpen(true);
-};
+  const saveSup = () => { if (!supForm.name) return; if (s.suppliers.find((x: any) => x.name === supForm.name)) { alert('يوجد مورد بنفس الاسم'); return; } s.addSupplier({ id: '', ...supForm, balance: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }); setSupForm({ name: '', phone: '', address: '', notes: '' }); setSupOpen(false); };
 
-// إضافة المنتج إلى الفاتورة
-const addToCart = () => {
-  if (!pf.sellingPrice || +pf.sellingPrice <= 0) { alert('يجب إدخال سعر البيع (حبة)'); return; }
-  if (!pf.unitPrice || +pf.unitPrice <= 0) { alert('يجب إدخال السعر'); return; }
-  const name = pf.name || 'منتج';
-  const bc = pf.barcode || '';
-  const existing = s.products.find((x: any) => x.name === name || (bc && x.barcode === bc));
-  const productId = existing?.id || bc || Date.now().toString();
-  const qty = +pf.quantity || 1;
-  const unit = pf.unit;
-  const boxQty = +pf.boxQty || 1;
-  const inputPrice = +pf.unitPrice || 0;
-  const pricePerPiece = unit === 'كرتون' ? inputPrice / boxQty : inputPrice;
-  const sellingPrice = +pf.sellingPrice || 0;
-  const minStock = +pf.minStock || 20;
-  const ex = items.find((i: any) => i.productId === productId);
-  if (ex) {
-    setItems(items.map((i: any) => i.productId === productId ? { ...i, quantity: i.quantity + qty, unit, boxQty, unitPrice: inputPrice, pricePerPiece, sellingPrice, minStock, total: (i.quantity + qty) * inputPrice } : i));
-  } else {
-    setItems([...items, { productId, productName: name, barcode: bc, quantity: qty, unit, boxQty, unitPrice: inputPrice, pricePerPiece, sellingPrice, minStock, total: qty * inputPrice }]);
-  }
-  setProdOpen(false);
-  setHasChanges(true);
-  setTimeout(() => qtyRef.current?.focus(), 100);
-};
-
-// معالجة الباركود
-const handleBarcodeDetected = (bc: string) => {
-  const p = s.products.find((x: any) => x.barcode === bc);
-  if (p) { openPf(p); setBarcodeInput(bc); }
-  else {
-    setPf({ name: '', barcode: bc, quantity: '1', unit: 'كرتون', boxQty: '', unitPrice: '', sellingPrice: '', minStock: '' });
+  // فتح نافذة إضافة منتج
+  const openPf = (p?: any) => {
+    if (p) {
+      const isCarton = p.unit === 'كرتون' && p.boxQty;
+      const cartonPrice = isCarton ? (p.lastPurchasePrice || p.purchasePrice || 0) * p.boxQty : (p.lastPurchasePrice || p.purchasePrice || 0);
+      setPf({
+        name: p.name,
+        barcode: p.barcode || '',
+        quantity: '1',
+        unit: p.unit || 'حبة',
+        boxQty: p.boxQty?.toString() || '',
+        unitPrice: cartonPrice.toString(),
+        sellingPrice: (p.sellingPrice || '').toString(),
+        minStock: (p.minStock || '20').toString()
+      });
+    } else {
+      setPf({ name: '', barcode: '', quantity: '1', unit: 'كرتون', boxQty: '', unitPrice: '', sellingPrice: '', minStock: '' });
+    }
+    setShow(false);
     setProdOpen(true);
-  }
-};
-
-const addByBarcode = (bc: string) => {
-  const p = s.products.find((x: any) => x.barcode === bc);
-  p ? openPf(p) : alert('المنتج غير موجود');
-};
-
-// دوال الحفظ والتعديل والحذف
-const reset = () => { setItems([]); setPaid(''); setEditPur(null); setInvoiceNo(''); setSupplier(''); setHasChanges(false); };
-
-const startEdit = (p: any) => {
-  setEditPur(p);
-  setSupplier(p.supplierId || '');
-  setBox(p.cashBoxId || 'default-cash-box');
-  setPaid(p.paid.toString());
-  setItems(p.items.map((i: any) => ({ ...i })));
-  setInvoiceNo(p.invoiceNo || '');
-  setHasChanges(true);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-};
-
-const save = () => {
-  if (!items.length) return;
-  if (!isCashPurchase && !supplier) return alert('اختر المورد للشراء الآجل');
-
-  for (const item of items) {
-    if (item.quantity <= 0) { alert(`الكمية غير صالحة للمنتج: ${item.productName}`); return; }
-  }
-
-  const purchaseData = {
-    supplierId: supplier || null,
-    cashBoxId: box || null,
-    items,
-    total,
-    paid: finalPaid,
-    remaining: remaining > 0 ? remaining : 0,
-    invoiceNo: currentInvoiceNo.toString()
   };
 
-  if (editPur) {
-    s.updatePurchase(editPur.id, purchaseData);
-  } else {
-    s.addPurchase({ id: '', ...purchaseData, createdAt: new Date().toISOString() });
-  }
-  reset();
-};
+  // إضافة المنتج إلى الفاتورة
+  const addToCart = () => {
+    if (!pf.sellingPrice || +pf.sellingPrice <= 0) { alert('يجب إدخال سعر البيع (حبة)'); return; }
+    if (!pf.unitPrice || +pf.unitPrice <= 0) { alert('يجب إدخال السعر'); return; }
+    const name = pf.name || 'منتج';
+    const bc = pf.barcode || '';
+    const existing = s.products.find((x: any) => x.name === name || (bc && x.barcode === bc));
+    const productId = existing?.id || bc || Date.now().toString();
+    const qty = +pf.quantity || 1;
+    const unit = pf.unit;
+    const boxQty = +pf.boxQty || 1;
+    const inputPrice = +pf.unitPrice || 0;
+    const pricePerPiece = unit === 'كرتون' ? inputPrice / boxQty : inputPrice;
+    const sellingPrice = +pf.sellingPrice || 0;
+    const minStock = +pf.minStock || 20;
+    const ex = items.find((i: any) => i.productId === productId);
+    if (ex) {
+      setItems(items.map((i: any) => i.productId === productId ? { ...i, quantity: i.quantity + qty, unit, boxQty, unitPrice: inputPrice, pricePerPiece, sellingPrice, minStock, total: (i.quantity + qty) * inputPrice } : i));
+    } else {
+      setItems([...items, { productId, productName: name, barcode: bc, quantity: qty, unit, boxQty, unitPrice: inputPrice, pricePerPiece, sellingPrice, minStock, total: qty * inputPrice }]);
+    }
+    setProdOpen(false);
+    setHasChanges(true);
+    setTimeout(() => qtyRef.current?.focus(), 100);
+  };
 
-const delPur = (id: string) => {
-  if (confirm('سيتم نقل الفاتورة إلى سلة المحذوفات. متابعة؟')) s.deletePurchase(id);
-};  // ====== بداية واجهة المستخدم (JSX) ======
+  // معالجة الباركود
+  const handleBarcodeDetected = (bc: string) => {
+    const p = s.products.find((x: any) => x.barcode === bc);
+    if (p) { openPf(p); setBarcodeInput(bc); }
+    else {
+      setPf({ name: '', barcode: bc, quantity: '1', unit: 'كرتون', boxQty: '', unitPrice: '', sellingPrice: '', minStock: '' });
+      setProdOpen(true);
+    }
+  };
+
+  const addByBarcode = (bc: string) => {
+    const p = s.products.find((x: any) => x.barcode === bc);
+    p ? openPf(p) : alert('المنتج غير موجود');
+  };
+
+  // دوال الحفظ والتعديل والحذف
+  const reset = () => { setItems([]); setPaid(''); setEditPur(null); setInvoiceNo(''); setSupplier(''); setHasChanges(false); };
+
+  const startEdit = (p: any) => {
+    setEditPur(p);
+    setSupplier(p.supplierId || '');
+    setBox(p.cashBoxId || 'default-cash-box');
+    setPaid(p.paid.toString());
+    setItems(p.items.map((i: any) => ({ ...i })));
+    setInvoiceNo(p.invoiceNo || '');
+    setHasChanges(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const save = () => {
+    if (!items.length) return;
+    if (!isCashPurchase && !supplier) return alert('اختر المورد للشراء الآجل');
+
+    for (const item of items) {
+      if (item.quantity <= 0) { alert(`الكمية غير صالحة للمنتج: ${item.productName}`); return; }
+    }
+
+    const purchaseData = {
+      supplierId: supplier || null,
+      cashBoxId: box || null,
+      items,
+      total,
+      paid: finalPaid,
+      remaining: remaining > 0 ? remaining : 0,
+      invoiceNo: currentInvoiceNo.toString()
+    };
+
+    if (editPur) {
+      s.updatePurchase(editPur.id, purchaseData);
+    } else {
+      s.addPurchase({ id: '', ...purchaseData, createdAt: new Date().toISOString() });
+    }
+    reset();
+  };
+
+  const delPur = (id: string) => {
+    if (confirm('سيتم نقل الفاتورة إلى سلة المحذوفات. متابعة؟')) s.deletePurchase(id);
+  };
+
+  // ====== بداية واجهة المستخدم (JSX) ======
   return (
     <div className="page-container" ref={topRef}>
       {editPur && (
@@ -444,9 +450,7 @@ const delPur = (id: string) => {
             </div>
           ))
         )}
-      </div>
-
-      {/* نوافذ الحوار (Dialogs) */}
+      </div> {/* نوافذ الحوار (Dialogs) */}
       <Dialog open={supOpen} onClose={() => setSupOpen(false)} title="إضافة مورد جديد">
         <div className="space-y-3 pb-4">
           <Input label="اسم المورد" value={supForm.name} onChange={e => setSupForm({ ...supForm, name: e.target.value })} />
@@ -483,7 +487,8 @@ const delPur = (id: string) => {
               <span className="text-financial text-primary">{fmt(+pf.unitPrice / +pf.boxQty)}</span>
               <span className="text-small text-text-secondary mr-2">({fmt(+pf.quantity * +pf.boxQty)} حبة = {fmt(+pf.quantity * +pf.unitPrice)})</span>
             </div>
-          )}    <div className="grid grid-cols-2 gap-3">
+          )}
+          <div className="grid grid-cols-2 gap-3">
             <div><label className={LC}>سعر البيع (حبة)</label><input type="text" value={pf.sellingPrice ? fmt(+pf.sellingPrice) : ''} onChange={e => setPf({ ...pf, sellingPrice: e.target.value.replace(/,/g, '') })} onFocus={e => e.target.select()} className="w-full h-[42px] rounded-input border border-border text-center text-[19px] font-bold" inputMode="decimal" /></div>
             <div><label className={LC}>تنبيه الحد الأدنى</label><input type="number" value={pf.minStock} onChange={e => setPf({ ...pf, minStock: e.target.value })} onFocus={e => e.target.select()} className="w-full h-[42px] rounded-input border border-border text-center text-[19px] font-bold" inputMode="numeric" /></div>
           </div>
@@ -500,4 +505,4 @@ const delPur = (id: string) => {
 
     </div>
   );
-            }
+      }
