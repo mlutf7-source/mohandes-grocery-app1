@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import Dialog from '@/components/ui/Dialog';
 import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card'; // ⭐ استيراد مكون Card الجديد
 
 const allPages = [
   { path: '/dashboard', label: 'لوحة التحكم', icon: BarChart3 },
@@ -60,33 +61,27 @@ export default function BottomNav() {
 
   return (
     <>
-      <nav className="bg-white/90 backdrop-blur-sm overflow-x-auto shadow-sm">
-        <div className="flex h-[48px] px-2 gap-1.5 min-w-max items-center">
-          {/* أيقونة الرئيسية ثابتة */}
+      <nav className="bg-white/90 backdrop-blur-sm overflow-x-auto shadow-sm border-b border-border">
+        <div className="flex h-[60px] px-3 gap-2 min-w-max items-center">
+          
+          {/* أيقونة الرئيسية (مربعة 4D) */}
           <NavLink
             to="/"
             end
-            className={({ isActive }) =>
-              clsx(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors border-2 sticky right-0 z-10',
-                isActive
-                  ? 'bg-primary text-white border-primary'
-                  : 'text-primary border-primary/30 hover:bg-primary-light bg-white/90 backdrop-blur-sm'
-              )
-            }
+            className="flex flex-col items-center justify-center"
           >
             {({ isActive }) => (
-              <>
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${isActive ? 'bg-white/20' : 'bg-primary-light'}`}>
-                  <Home size={16} className={isActive ? 'text-white' : 'text-primary'} />
-                </div>
-                <span className="text-small">الرئيسية</span>
-              </>
+              <Card variant="icon" className={`w-[48px] h-[48px] ${isActive ? '!border-2 !border-primary' : ''}`}>
+                <Home size={20} className={isActive ? 'text-primary' : 'text-text-secondary'} />
+                <span className={`text-[10px] font-semibold ${isActive ? 'text-primary' : 'text-text-secondary'}`}>
+                  الرئيسية
+                </span>
+              </Card>
             )}
           </NavLink>
 
           {/* فاصل */}
-          <div className="w-px h-6 bg-border mx-1" />
+          <div className="w-px h-8 bg-border mx-1" />
 
           {/* أيقونات أساسية: بيع، شراء، تقارير */}
           {fixedShortcuts.filter(p => p !== '/').map((path) => {
@@ -95,60 +90,49 @@ export default function BottomNav() {
             const Icon = page.icon;
 
             return (
-              <NavLink
-                key={path}
-                to={path}
-                end
-                className={clsx(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors border-2',
-                  isActive ? 'bg-primary text-white border-primary' : 'text-primary border-primary/30 hover:bg-primary-light'
-                )}
-              >
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${isActive ? 'bg-white/20' : 'bg-primary-light'}`}>
-                  <Icon size={16} className={isActive ? 'text-white' : 'text-primary'} />
-                </div>
-                <span className="text-small">{page.label}</span>
+              <NavLink key={path} to={path} end className="flex flex-col items-center justify-center">
+                <Card variant="icon" className={`w-[48px] h-[48px] ${isActive ? '!border-2 !border-primary' : ''}`}>
+                  <Icon size={20} className={isActive ? 'text-primary' : 'text-text-secondary'} />
+                  <span className={`text-[10px] font-semibold ${isActive ? 'text-primary' : 'text-text-secondary'}`}>
+                    {page.label}
+                  </span>
+                </Card>
               </NavLink>
             );
           })}
 
-          {/* أيقونات مخصصة */}
+          {/* أيقونات مخصصة (مربعة 4D) */}
           {shortcuts.map((path) => {
             const page = getPageInfo(path);
             const isActive = location.pathname === path;
             const Icon = page.icon;
 
             return (
-              <NavLink
-                key={path}
-                to={path}
-                end
-                className={clsx(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors border-2',
-                  isActive ? 'bg-primary text-white border-primary' : 'text-primary border-primary/30 hover:bg-primary-light'
-                )}
-              >
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${isActive ? 'bg-white/20' : 'bg-primary-light'}`}>
-                  <Icon size={16} className={isActive ? 'text-white' : 'text-primary'} />
-                </div>
-                <span className="text-small">{page.label}</span>
+              <NavLink key={path} to={path} end className="flex flex-col items-center justify-center">
+                <Card variant="icon" className={`w-[48px] h-[48px] ${isActive ? '!border-2 !border-primary' : ''}`}>
+                  <Icon size={20} className={isActive ? 'text-primary' : 'text-text-secondary'} />
+                  <span className={`text-[10px] font-semibold ${isActive ? 'text-primary' : 'text-text-secondary'}`}>
+                    {page.label}
+                  </span>
+                </Card>
               </NavLink>
             );
           })}
 
-          {/* زر تخصيص */}
+          {/* زر تخصيص (مربع 4D بألوان متغيرة) */}
           <button
             onClick={() => setEditOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl whitespace-nowrap transition-colors border-2 border-dashed text-primary border-primary/30 hover:bg-primary-light"
+            className="flex flex-col items-center justify-center"
           >
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-primary-light">
-              <Plus size={16} className="text-primary" />
-            </div>
-            <span className="text-small">تخصيص</span>
+            <Card variant="icon" className="w-[48px] h-[48px] border-2 border-dashed border-primary/30 bg-primary/5">
+              <Plus size={20} className="text-primary" />
+              <span className="text-[10px] font-semibold text-primary">تخصيص</span>
+            </Card>
           </button>
         </div>
       </nav>
 
+      {/* نافذة تخصيص الاختصارات (دون تغيير) */}
       <Dialog open={editOpen} onClose={() => setEditOpen(false)} title="تخصيص الشريط">
         <div className="space-y-3 pb-4">
           <p className="text-small text-text-secondary">
@@ -203,4 +187,4 @@ export default function BottomNav() {
       </Dialog>
     </>
   );
-                }
+                                                                   }
